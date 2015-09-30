@@ -1,27 +1,18 @@
 import numpy as np
+import pylab as plt
 
-import pyximport
-pyximport.install(setup_args={"include_dirs":[np.get_include()]},)
-import mandelbrot
+from common import mandelbrot, Timer, \
+    by_block_slices, by_blocks, by_rows, \
+    make_coords, make_shared
 
-import pylab
-import time
+in_coords, out_counts = make_coords()
 
-
-center = -0.575 - 0.575j
-width = 0.0025
-
-x = np.linspace(start=(-width / 2), stop=(width / 2), num=2000)
-xx = center + (x + 1j * x[:, np.newaxis]).astype(np.complex64)
-out_counts = np.zeros_like(xx, dtype=np.uint32)
-
-
-start = time.time()
-mandelbrot.mandelbrot(xx, out_counts, 1024)
-seconds = time.time() - start
+with Timer() as t:
+    mandelbrot.mandelbrot(in_coords, out_counts, 1024)
+seconds = t.interval
 
 print("{} seconds, {} million Complex FMAs / second".format(seconds, (out_counts.sum() / seconds) / 1e6))
 print("{} Million Complex FMAs".format(out_counts.sum() / 1e6))
 
-pylab.imshow(np.log(out_counts))
-pylab.show()
+plt.imshow(np.log(out_counts))
+plt.show()

@@ -23,3 +23,7 @@ def by_block_slices(array, num):
         for j_lo in range(0, array.shape[1], j_step):
             yield (slice(i_lo, i_lo + i_step),
                    slice(j_lo, j_lo + j_step))
+
+def by_rows(array):
+    for idx in range(array.shape[0]):
+        yield (slice(idx, idx + 1, 1), slice(None, None, 1))
