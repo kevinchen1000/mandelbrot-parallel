@@ -1,33 +1,32 @@
 import numpy as np
-
-import pyximport
-pyximport.install(setup_args={"include_dirs": [np.get_include()]},)
-import mandelbrot
-
-import pylab
+import pylab as plt
+import multiprocessing
 import time
-from blocks import by_blocks
 
-center = -0.575 - 0.575j
-width = 0.0025
+from common import mandelbrot, Timer, \
+    by_block_slices, by_blocks, by_rows, \
+    make_coords, make_shared
 
-x = np.linspace(start=(-width / 2), stop=(width / 2), num=500)
-xx = center + (x + 1j * x[:, np.newaxis]).astype(np.complex64)
-out_counts = np.zeros_like(xx, dtype=np.uint32)
 
-inside_seconds = 0
-start = time.time()
+if __name__ == '__main__':
+    in_coords, out_counts = make_coords()
+    in_coords = make_shared(in_coords)
+    out_counts = make_shared(out_counts)
 
-for in_block, out_block in zip(by_blocks(xx, 10),
-                               by_blocks(out_counts, 10)):
-    inside_start = time.time()
-    mandelbrot.mandelbrot(in_block, out_block, 1024)
-    inside_seconds += time.time() - inside_start
+    # this has to be here for scoping reasons
+    def wrap_mandelbrot(ij_slice, iterations=1024):
+        mandelbrot.mandelbrot(in_coords[ij_slice], out_counts[ij_slice], iterations)
 
-seconds = time.time() - start
+    # pool should be declared after any shared variables
+    pool = multiprocessing.Pool(4)
 
-print("{} seconds, {} million Complex FMAs / second".format(seconds, (out_counts.sum() / seconds) / 1e6))
-print("{} seconds inside inner loop".format(inside_seconds))
+    with Timer() as t:
+        slices = by_block_slices(in_coords, 10)
+        pool.map(wrap_mandelbrot, slices)
+    seconds = t.interval
 
-pylab.imshow(np.log(np.log(out_counts) + 1))
-pylab.show()
+    print("{} seconds, {} million Complex FMAs / second".format(seconds, (out_counts.sum() / seconds) / 1e6))
+    print("{} Million Complex FMAs".format(out_counts.sum() / 1e6))
+
+    plt.imshow(np.log(out_counts))
+    plt.show()
