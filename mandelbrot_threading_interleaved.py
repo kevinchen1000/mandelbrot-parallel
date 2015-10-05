@@ -17,10 +17,10 @@ if __name__ == '__main__':
 
     pool = ThreadPool(4)
 
-    blocks = [slice(threadidx, in_coords.shape[0], 4) for threadidx in range(4)]
-    print blocks
+    slices = [slice(threadidx, in_coords.shape[0], 4) for threadidx in range(4)]
+
     with Timer() as t:
-        pool.map(wrap_mandelbrot, blocks)
+        pool.map(wrap_mandelbrot, slices)
     seconds = t.interval
 
     print("{} seconds, {} million Complex FMAs / second".format(seconds, (out_counts.sum() / seconds) / 1e6))
